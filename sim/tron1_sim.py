@@ -18,6 +18,7 @@ import warnings
 from pathlib import Path
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 import warp as wp
 import newton
 import newton.viewer
@@ -62,28 +63,6 @@ ELEVATIONS = np.radians([-7.0] + list(range(-6, 53, 2)))
 CAMERA_BEHIND, CAMERA_HEIGHT, CAMERA_PITCH = 1.5, 2.2, -60.0  # viewer start: behind the robot, above the walls
 
 
-def quat_mul(q1, q2):  # xyzw
-    x1, y1, z1, w1 = q1
-    x2, y2, z2, w2 = q2
-    return np.array([w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-                     w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
-                     w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
-                     w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2])
-
-
-def quat_inverse(quat):  # of a unit xyzw quaternion
-    return quat * [-1, -1, -1, 1]
-
-
-def rotate(quat, vector):  # rotate vector by the xyzw quaternion
-    axis, w = np.asarray(quat[:3]), quat[3]
-    return vector + 2.0 * np.cross(axis, np.cross(axis, vector) + w * vector)
-
-
-def yaw_quat(yaw):
-    return np.array([0.0, 0.0, math.sin(yaw / 2), math.cos(yaw / 2)])
-
-
 def fill(msg, values, fields="xyz"):  # e.g. fill(pose.position, [1, 2, 3])
     for field, value in zip(fields, values):
         setattr(msg, field, float(value))
@@ -95,7 +74,7 @@ class Tron1Sim:
         newton.solvers.SolverMuJoCo.register_custom_attributes(builder)
         builder.add_usd(world)  # map_to_world's default USD: ground + 2 m walls, all colliders
         builder.add_mjcf(str(ROBOT_XML), ignore_names=("floor",))  # the world brings the ground
-        self.spawn = np.array([x, y, SPAWN_HEIGHT, *yaw_quat(yaw)])
+        self.spawn = np.array([x, y, SPAWN_HEIGHT, *Rotation.from_euler("z", yaw).as_quat()])
         builder.joint_q[BASE_POSE] = self.spawn.tolist()
         self.model = builder.finalize()
 
@@ -242,23 +221,21 @@ class Tron1Sim:
 
     def publish_odom(self, q, qd):
         # odom = the spawn pose, so odometry starts at identity like a real robot's
-        spawn_inverse = quat_inverse(self.spawn[BASE_QUAT])
-        spawn_ground = np.append(self.spawn[:2], 0.0)
-        position = rotate(spawn_inverse, q[BASE_POS] - spawn_ground)
-        orientation = quat_mul(spawn_inverse, q[BASE_QUAT])
-        tf = self.transform("odom", "base_link", position, orientation)
+        spawn_inverse = Rotation.from_quat(self.spawn[BASE_QUAT]).inv()
+        body = Rotation.from_quat(q[BASE_QUAT])
+        position = spawn_inverse.apply(q[BASE_POS] - np.append(self.spawn[:2], 0.0))
+        tf = self.transform("odom", "base_link", position, (spawn_inverse * body).as_quat())
         self.tf.sendTransform(tf)
 
-        body_inverse = quat_inverse(q[BASE_QUAT])  # twist is in the body frame
         odom = Odometry(header=tf.header, child_frame_id="base_link")
         fill(odom.pose.pose.position, position)
-        fill(odom.pose.pose.orientation, orientation, "xyzw")
-        fill(odom.twist.twist.linear, rotate(body_inverse, qd[BASE_LIN_VEL]))
-        fill(odom.twist.twist.angular, rotate(body_inverse, qd[BASE_ANG_VEL]))
+        odom.pose.pose.orientation = tf.transform.rotation
+        fill(odom.twist.twist.linear, body.inv().apply(qd[BASE_LIN_VEL]))  # twist is in the body frame
+        fill(odom.twist.twist.angular, body.inv().apply(qd[BASE_ANG_VEL]))
         self.odom_pub.publish(odom)
 
     def publish_cloud(self, q):
-        lidar_pos = q[BASE_POS] + rotate(q[BASE_QUAT], LIDAR_MOUNT)
+        lidar_pos = q[BASE_POS] + Rotation.from_quat(q[BASE_QUAT]).apply(LIDAR_MOUNT)
         pose = wp.transformf(wp.vec3f(*lidar_pos), wp.quatf(*q[BASE_QUAT]))
         self.lidar.update(self.state, wp.array([[pose]], dtype=wp.transformf), self.rays,
                           depth_image=self.depth, shape_index_image=self.hit_shape)

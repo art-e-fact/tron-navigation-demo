@@ -48,6 +48,7 @@ limxsdk = { url = "https://github.com/limxdynamics/limxsdk-lowlevel/raw/993f0e5/
 artefacts-toolkit-navigation = { path = "../artefacts-toolkit-navigation", editable = true }
 artefacts-toolkit = "*"
 pytest = "*"
+scipy = "*"
 
 [tasks]
 fetch = "vcs import --skip-existing limx_ws/src < limx.repos && scripts/get_onnxruntime.sh"
