@@ -1,0 +1,14 @@
+# Upstream LimX Dynamics repos, used unmodified. Imported into limx_ws/src by scripts/build.sh.
+repositories:
+  tron1-rl-deploy-ros2:
+    type: git
+    url: https://github.com/limxdynamics/tron1-rl-deploy-ros2.git
+    version: 9b71629
+  limxsdk-lowlevel:
+    type: git
+    url: https://github.com/limxdynamics/limxsdk-lowlevel.git
+    version: 993f0e5
+  robot-description:
+    type: git
+    url: https://github.com/limxdynamics/robot-description.git
+    version: 5b97add

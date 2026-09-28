@@ -1,0 +1,14 @@
+maps/*
+!maps/.gitkeep
+routes/*
+!routes/.gitkeep
+
+worlds/
+results/
+limx_ws/
+rosbuild/
+third_party/
+.pixi/
+venv/
+__pycache__/
+.pytest_cache/

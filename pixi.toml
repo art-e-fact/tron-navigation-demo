@@ -1,0 +1,54 @@
+[workspace]
+name = "tron-navigation-demo"
+channels = ["robostack-humble", "conda-forge"]
+platforms = ["linux-64"]
+
+[system-requirements]
+libc = "2.35"
+
+[activation]
+scripts = ["scripts/activate.sh"]
+
+[activation.env]
+ROBOT_TYPE = "PF_TRON1A"
+RL_TYPE = "isaacgym"
+
+[dependencies]
+python = "3.11.*"  # Humble is 3.10 on Ubuntu, but robostack-humble has no 3.10 builds
+# ROS 2 Humble + Nav2
+ros-humble-ros-base = "*"
+ros-humble-ros2launch = "*"
+ros-humble-nav2-bringup = "*"
+ros-humble-nav2-simple-commander = "*"
+ros-humble-pointcloud-to-laserscan = "*"
+ros-humble-rviz2 = "*"
+ros-humble-tf2-ros-py = "*"
+ros-humble-sensor-msgs-py = "*"
+# Build deps of the upstream LimX packages (limx.repos)
+ros-humble-controller-manager = "*"
+ros-humble-controller-interface = "*"
+ros-humble-hardware-interface = "*"
+ros-humble-realtime-tools = "*"
+ros-humble-urdf = "*"
+ros-humble-pluginlib = "*"
+colcon-common-extensions = "*"
+vcstool = "*"
+compilers = "*"
+cmake = "*"
+make = "*"
+pkg-config = "*"
+eigen = "*"
+# liblimxsdk_lowlevel.so needs glibc >= 2.29
+sysroot_linux-64 = ">=2.34"
+
+[pypi-dependencies]
+newton = { version = "==1.6.0", extras = ["examples"] }
+# Sim side of the LimX SDK, straight from upstream
+limxsdk = { url = "https://github.com/limxdynamics/limxsdk-lowlevel/raw/993f0e5/python3/amd64/limxsdk-4.1.1-cp38-abi3-manylinux_2_29_x86_64.whl" }
+artefacts-toolkit-navigation = { path = "../artefacts-toolkit-navigation", editable = true }
+artefacts-toolkit = "*"
+pytest = "*"
+
+[tasks]
+fetch = "vcs import --skip-existing limx_ws/src < limx.repos && scripts/get_onnxruntime.sh"
+build = { cmd = "colcon --log-base rosbuild/log build --base-paths limx_ws/src --build-base rosbuild/build --install-base rosbuild/install --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_RPATH=$PWD/third_party/onnxruntime/lib", depends-on = ["fetch"], env = { CPATH = "$PWD/third_party/onnxruntime/include:$CPATH", LIBRARY_PATH = "$PWD/third_party/onnxruntime/lib" } }
