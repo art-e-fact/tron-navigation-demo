@@ -38,6 +38,7 @@ cmake = "*"
 make = "*"
 pkg-config = "*"
 eigen = "*"
+psutil = "==7.0.0"  # artefacts-cli pins it exactly
 # liblimxsdk_lowlevel.so needs glibc >= 2.29
 sysroot_linux-64 = ">=2.34"
 
@@ -47,6 +48,7 @@ newton = { version = "==1.6.0", extras = ["examples"] }
 limxsdk = { url = "https://github.com/limxdynamics/limxsdk-lowlevel/raw/993f0e5/python3/amd64/limxsdk-4.1.1-cp38-abi3-manylinux_2_29_x86_64.whl" }
 artefacts-toolkit-navigation = { path = "../artefacts-toolkit-navigation", editable = true }
 artefacts-toolkit = "*"
+artefacts-cli = ">=0.17.2"
 pytest = "*"
 scipy = "*"
 
