@@ -4,14 +4,13 @@ import signal
 import subprocess
 from pathlib import Path
 
-import numpy as np
 import pytest
 
-from artefacts_toolkit.chart import make_chart
 from artefacts_toolkit_navigation import follow_route, load_route
+from charts import path_chart, route_deviation_chart, speed_chart
 
 ROOT = Path(__file__).resolve().parents[1]
-ROUTE = os.environ.get("ROUTE") or None
+ROUTE = os.environ.get("ROUTE") or None  # none: the route recorded last
 RESULTS_DIR = Path(os.environ.get("ARTEFACTS_SCENARIO_UPLOAD_DIR", ROOT / "results"))
 METRICS = ROOT / "metrics.json"  # artefacts.yaml's `metrics:`, read from where `artefacts run` runs
 ROUTE_TIMEOUT_S = 400
@@ -24,8 +23,8 @@ WALKING_MPS = 0.05  # slower than this counts as standing
 
 @pytest.fixture
 def robot(artefacts_params):
-    """Sim + LimX controller + Nav2, up for one test. The test adds to the metrics dict;
-    the charts' metrics join it at the end, into metrics.json."""
+    """Sim + LimX controller + Nav2, up for one test. Yields the launch, its log and a dict
+    for the test's metrics; the charts and metrics.json follow once the launch is down."""
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     METRICS.unlink(missing_ok=True)  # or a run that dies early reports the previous run's
     log = RESULTS_DIR / "launch.log"
@@ -36,59 +35,30 @@ def robot(artefacts_params):
                                 cwd=ROOT, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
     metrics = {}
     yield proc, log, metrics
+
     os.killpg(proc.pid, signal.SIGINT)  # ros2 launch shuts its processes down in order
     try:
         proc.wait(timeout=SHUTDOWN_TIMEOUT_S)
     except subprocess.TimeoutExpired:
         os.killpg(proc.pid, signal.SIGKILL)
-    bag = max((ROOT / "rosbags").glob("rosbag2_*"))  # the one the launch just closed
-    path_chart(bag)
-    speed = speed_chart(bag)
-    walked, deviation = route_deviation_chart()
+    save_charts_and_metrics(metrics)
+
+
+def save_charts_and_metrics(metrics):
+    """The charts from the rosbag the launch just closed, then metrics.json: the test's and the charts'."""
+    bag = max((ROOT / "rosbags").glob("rosbag2_*"))
+    path = path_chart(bag, RESULTS_DIR)
+    speed = speed_chart(bag, RESULTS_DIR)
+    walked, deviation = route_deviation_chart(path, load_route(ROUTE), RESULTS_DIR)
     metrics.update(distance_walked_m=walked[-1], mean_walking_speed_mps=speed[speed > WALKING_MPS].mean(),
                    max_route_deviation_m=deviation.max(), mean_route_deviation_m=deviation.mean())
-    METRICS.write_text(json.dumps({k: v if v is None else round(float(v), 3) for k, v in metrics.items()}, indent=2))
-
-def path_chart(bag):
-    """path.csv: where the robot walked, x vs y in the map frame."""
-    make_chart(bag, "/amcl_pose.pose.pose.position.x", "/amcl_pose.pose.pose.position.y", field_unit="m",
-               output_dir=RESULTS_DIR, chart_name="path", output_format="csv")
-
-
-def speed_chart(bag):
-    """speed.csv: how fast the robot walked forward, over time. Returns the speeds."""
-    make_chart(bag, "time", "/odom.twist.twist.linear.x", field_unit="m/s",
-               output_dir=RESULTS_DIR, chart_name="speed", output_format="csv")
-    speed_csv = RESULTS_DIR / "speed.csv"  # make_chart keeps /odom's header stamps absolute: start them at 0
-    header, speed = speed_csv.read_text().splitlines()[0], np.loadtxt(speed_csv, delimiter=",", skiprows=1, ndmin=2)
-    speed[:, 0] -= speed[0, 0]
-    np.savetxt(speed_csv, speed, delimiter=",", header=header, comments="", fmt="%.3f")
-    return speed[:, 1]
-
-
-def route_deviation_chart():
-    """route_deviation.csv: how far the robot strayed from the route line (start -> waypoints),
-    along the way it walked. From path.csv, so after path_chart. Returns (walked, deviation)."""
-    route = load_route(ROUTE)
-    line = np.array([(p.x, p.y) for p in [route.initial_pose, *route.waypoints]])
-    path = np.loadtxt(RESULTS_DIR / "path.csv", delimiter=",", skiprows=1, ndmin=2)
-    walked = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(path, axis=0), axis=1))])
-    deviation = distance_to_line(path, line)
-    np.savetxt(RESULTS_DIR / "route_deviation.csv", np.column_stack([walked, deviation]),
-               delimiter=",", header="distance walked (m),distance from route (m)", comments="", fmt="%.3f")
-    return walked, deviation
-
-
-def distance_to_line(points, line):
-    """Each point's distance to the nearest segment of the polyline."""
-    start, seg = line[:-1], np.diff(line, axis=0)
-    t = np.clip(((points[:, None] - start) * seg).sum(-1) / np.maximum((seg * seg).sum(-1), 1e-9), 0, 1)
-    return np.linalg.norm(points[:, None] - (start + t[..., None] * seg), axis=-1).min(axis=1)
+    METRICS.write_text(json.dumps({k: None if v is None else round(float(v), 3) for k, v in metrics.items()},
+                                  indent=2))
 
 
 def test_route_is_completed(robot):
     proc, log, metrics = robot
-    result = follow_route(load_route(ROUTE), timeout_s=ROUTE_TIMEOUT_S, startup_timeout_s=STARTUP_TIMEOUT_S,
+    result = follow_route(ROUTE, timeout_s=ROUTE_TIMEOUT_S, startup_timeout_s=STARTUP_TIMEOUT_S,
                           results_dir=RESULTS_DIR)
     metrics.update(route_duration_s=result.duration_s, final_pos_error_m=result.final_pos_error_m,
                    final_yaw_error_rad=result.final_yaw_error_rad)
