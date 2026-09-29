@@ -734,6 +734,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/69/90/f63fb5873511e014207a475e2bb4e8b2e570d655b00ac19a9a0ca0a385ee/jsonschema-4.26.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/6c/c0/a98505f18594f1bce828bb159cec0fcf9860562f1a2c85913409fc8f3d9e/fsspec-2026.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/6d/18/83376915176eb058cb86470eb7396388a13350b09a8f233a79303bbcbc5b/pure_eval-0.2.4-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/70/e1/7b3ebf6333d5a28a78731029a34bb25812c93ae4fda19320ac2f69d13115/artefacts_route_recorder-0.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/78/bc/ffad9598cc4772cb0b8d8d47c6700493dac3d8d6518dead78c596a0325ed/newton_usd_schemas-0.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/7a/a1/9ae2852ebd3a7cc7d9ae7ff7919ab983e4a5c1b7a14e840732f23b2b48f6/pygame-2.6.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/7b/d0/1955c2623762fd1d9f3bc0bb9866b6c0669e1e277202bdc16772520d7da1/newton-1.6.0-py3-none-any.whl
@@ -770,7 +771,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/c3/55/298e9b3b864a198234997e87a1471c1b17d7f3546ace6d18fb5cf1ce24b2/ipywidgets-8.1.9-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/cf/bc/3fa2d76b83162820a17da7f645b28d1cba99fc8e1e5fc6517067ec450fa1/pydantic_core-2.46.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/d1/75/e5d44be90525cd28503e7f836d077ae6663ec0687a13ba7810b4114b3668/rtree-1.4.1-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
-      - pypi: https://files.pythonhosted.org/packages/d2/ff/1ecb8cec2df0ea1641c9387c2ad2793e57a8204ec3d0138099a1d3725de9/artefacts_route_recorder-0.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d4/2b/04b8a15f3a1c77bc79ddf5c73875327f34b4fa75982df2b76e45e402d364/asttokens-3.0.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d4/51/2f6afc0d0e06f7d12b3a1f4a0f55a101b13725a491b80ab4cf439fee70b0/fast_simplification-0.2.0-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/d5/0c/5796c2ed2dcd0696fc4abedf0ea0dfd5361b3f022a311481f977fa51b2b8/cbor2-6.1.4-cp311-cp311-manylinux_2_28_x86_64.whl
@@ -13202,7 +13202,7 @@ packages:
 - pypi: ../artefacts-toolkit-navigation
   name: artefacts-toolkit-navigation
   requires_dist:
-  - artefacts-route-recorder>=0.1.0,<0.2.0
+  - artefacts-route-recorder>=0.2.0,<0.3.0
   - pyyaml>=5.1
   - build ; extra == 'dev'
   - pytest ; extra == 'dev'
@@ -14147,6 +14147,17 @@ packages:
   sha256: 96cae060a313cfaad51bb761278bfb0e62dc0248d9315a81173752dc546cd37a
   requires_dist:
   - pytest ; extra == 'tests'
+- pypi: https://files.pythonhosted.org/packages/70/e1/7b3ebf6333d5a28a78731029a34bb25812c93ae4fda19320ac2f69d13115/artefacts_route_recorder-0.2.0-py3-none-any.whl
+  name: artefacts-route-recorder
+  version: 0.2.0
+  sha256: dc644d0e59cd6c9c274350e6363f2180f4aa029864dc2e9023b2dc620b2f8a63
+  requires_dist:
+  - pyyaml>=5.1
+  - build ; extra == 'dev'
+  - pytest ; extra == 'dev'
+  - setuptools-scm ; extra == 'dev'
+  - twine ; extra == 'dev'
+  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/78/bc/ffad9598cc4772cb0b8d8d47c6700493dac3d8d6518dead78c596a0325ed/newton_usd_schemas-0.5.0-py3-none-any.whl
   name: newton-usd-schemas
   version: 0.5.0
@@ -14695,17 +14706,6 @@ packages:
   version: 1.4.1
   sha256: 12de4578f1b3381a93a655846900be4e3d5f4cd5e306b8b00aa77c1121dc7e8c
   requires_python: '>=3.9'
-- pypi: https://files.pythonhosted.org/packages/d2/ff/1ecb8cec2df0ea1641c9387c2ad2793e57a8204ec3d0138099a1d3725de9/artefacts_route_recorder-0.1.0-py3-none-any.whl
-  name: artefacts-route-recorder
-  version: 0.1.0
-  sha256: dbefc4d3b2e6335e2f84dc8b0ebf8b3437ea59692e0d1af3fccb45ce39a2f696
-  requires_dist:
-  - pyyaml>=5.1
-  - build ; extra == 'dev'
-  - pytest ; extra == 'dev'
-  - setuptools-scm ; extra == 'dev'
-  - twine ; extra == 'dev'
-  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/d4/2b/04b8a15f3a1c77bc79ddf5c73875327f34b4fa75982df2b76e45e402d364/asttokens-3.0.2-py3-none-any.whl
   name: asttokens
   version: 3.0.2

@@ -16,12 +16,12 @@ pixi run build
 2. Record a route with
 
 ```bash
-pixi run artefacts-route record --name my_route --map maps/my_map.yaml
+pixi run artefacts-route record routes/my_route.yaml --map maps/my_map.yaml  # path optional
 ```
 
 * Set the start with **2D Pose Estimate**
 * Add waypoints with **Publish Point**,
-* press Enter in the terminal to save `routes/my_route.yaml`
+* press Enter in the terminal to save `routes/my_route.yaml` (or `routes/<date>_<time>.yaml` if no path given)
 
 3. Run Test with:
 
