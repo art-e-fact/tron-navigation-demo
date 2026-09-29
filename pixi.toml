@@ -24,6 +24,7 @@ ros-humble-pointcloud-to-laserscan = "*"
 ros-humble-rviz2 = "*"
 ros-humble-tf2-ros-py = "*"
 ros-humble-sensor-msgs-py = "*"
+ros-humble-rosbag2-storage-mcap = "*"  # artefacts_toolkit.rosbag records mcap
 # Build deps of the upstream LimX packages (limx.repos)
 ros-humble-controller-manager = "*"
 ros-humble-controller-interface = "*"

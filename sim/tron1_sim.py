@@ -1,23 +1,27 @@
 """LimX Tron1 (point-foot biped) in Newton, played through LimX's own SDK.
 
-    python sim/tron1_sim.py --world worlds/x.usda --x 0 --y 0 --yaw 0 [--headless]
+    python sim/tron1_sim.py --world worlds/x.usda --x 0 --y 0 --yaw 0 [--headless] [--video-dir results]
 
 The upstream controller (robot_hw pointfoot_node) talks limxsdk to "the robot" at
 127.0.0.1; this script is that robot, like LimX's tron1-mujoco-sim/simulator.py:
 it takes RobotCmd, applies tau = Kp*(q_cmd-q) + Kd*(dq_cmd-dq) + tau_ff and sends
 back RobotState + IMU every physics step, paced to wall clock.
 For Nav2 it publishes /odom, TF odom->base_link->livox_frame and a Mid-360 cloud.
+With --video-dir it also records follow.mp4 and birdseye.mp4, headless or not.
 """
 
 import argparse
 import math
 import os
+import signal
 import threading
 import time
 import warnings
 from pathlib import Path
 
+import cv2
 import numpy as np
+import pyglet
 from scipy.spatial.transform import Rotation
 import warp as wp
 import newton
@@ -53,6 +57,7 @@ BASE_POS, BASE_QUAT, BASE_POSE, LEGS_Q = slice(0, 3), slice(3, 7), slice(0, 7), 
 BASE_LIN_VEL, BASE_ANG_VEL, BASE_VEL, LEGS_QD = slice(0, 3), slice(3, 6), slice(0, 6), slice(6, None)
 
 ODOM_PERIOD_S, LIDAR_PERIOD_S, RENDER_PERIOD_S, LOG_PERIOD_S = 0.02, 0.1, 0.05, 5.0
+VIDEO_PERIOD_S = 0.1  # a multiple of RENDER_PERIOD_S: frames come from the viewer's latest state
 
 LIDAR_MOUNT = np.array([0.0, 0.0, 0.07])  # on the base_Link top plate (mesh top z=0.0165)
 # Mid-360: 360 deg x -7..52 deg, 10 Hz, 0.1..40 m. A regular grid, with a 0 deg ring for /scan.
@@ -60,7 +65,10 @@ LIDAR_MIN_RANGE, LIDAR_MAX_RANGE = 0.1, 40.0
 AZIMUTHS = np.radians(np.arange(-180.0, 180.0, 0.5))
 ELEVATIONS = np.radians([-7.0] + list(range(-6, 53, 2)))
 
-CAMERA_BEHIND, CAMERA_HEIGHT, CAMERA_PITCH = 1.5, 2.2, -60.0  # viewer start: behind the robot, above the walls
+CAMERA_BEHIND, CAMERA_HEIGHT, CAMERA_PITCH = 1.5, 2.2, -60.0  # viewer start and follow video: behind the robot, above the walls
+BIRDSEYE_HEIGHT = 12.0
+VIDEO_SIZE = (1280, 720)
+HEADING_SMOOTHING = 0.1  # per frame, so the follow video does not wobble with the gait
 
 
 def fill(msg, values, fields="xyz"):  # e.g. fill(pose.position, [1, 2, 3])
@@ -69,7 +77,7 @@ def fill(msg, values, fields="xyz"):  # e.g. fill(pose.position, [1, 2, 3])
 
 
 class Tron1Sim:
-    def __init__(self, world, x, y, yaw, headless):
+    def __init__(self, world, x, y, yaw, headless, video_dir):
         builder = newton.ModelBuilder()
         newton.solvers.SolverMuJoCo.register_custom_attributes(builder)
         builder.add_usd(world)  # map_to_world's default USD: ground + 2 m walls, all colliders
@@ -103,12 +111,19 @@ class Tron1Sim:
         # is_robot_shape[shape index]; the extra False at the end catches misses (index clamped to it)
         self.is_robot_shape = np.append(self.model.shape_body.numpy() >= 0, False)
 
+        # The window, or a hidden (EGL) viewer when headless to render the videos with
         self.viewer = None
-        if not headless:
-            self.viewer = newton.viewer.ViewerGL()
+        if not headless or video_dir:
+            pyglet.options["headless"] = headless
+            self.viewer = newton.viewer.ViewerGL(*VIDEO_SIZE, headless=headless)
             self.viewer.set_model(self.model)
-            eye = self.spawn[BASE_POS] + [-CAMERA_BEHIND * math.cos(yaw), -CAMERA_BEHIND * math.sin(yaw), CAMERA_HEIGHT]
-            self.viewer.set_camera(wp.vec3(*eye), CAMERA_PITCH, math.degrees(yaw))
+            self.viewer.set_camera(*self.follow_view(self.spawn[BASE_POS], yaw))
+        self.heading = np.array([math.cos(yaw), math.sin(yaw)])
+        h264 = cv2.VideoWriter_fourcc(*"avc1")  # ~3 ms a 720p frame; VP8 (webm) took ~35 and stalled the sim
+        if video_dir:
+            Path(video_dir).mkdir(parents=True, exist_ok=True)
+        self.videos = {name: cv2.VideoWriter(str(Path(video_dir) / f"{name}.mp4"), h264, 1 / VIDEO_PERIOD_S, VIDEO_SIZE)
+                       for name in ("follow", "birdseye")} if video_dir else {}
 
         self.robot = Robot(RobotType.PointFoot, True)
         if not self.robot.init(ROBOT_IP):
@@ -183,6 +198,8 @@ class Tron1Sim:
                 self.publish_cloud(q)
             if self.viewer is not None and every(RENDER_PERIOD_S):
                 self.render()
+            if self.videos and every(VIDEO_PERIOD_S):
+                self.record(q)
             if every(LOG_PERIOD_S):
                 now = time.monotonic()
                 print(f"[tron1_sim] t={steps * DT:.0f}s real-time factor {log_steps * DT / (now - log_wall):.2f}"
@@ -250,6 +267,31 @@ class Tron1Sim:
         self.viewer.log_state(self.state)
         self.viewer.end_frame()
 
+    @staticmethod
+    def follow_view(position, yaw):  # viewer.set_camera args: behind and above, looking along yaw
+        eye = position + [-CAMERA_BEHIND * math.cos(yaw), -CAMERA_BEHIND * math.sin(yaw), CAMERA_HEIGHT]
+        return wp.vec3(*eye), CAMERA_PITCH, math.degrees(yaw)
+
+    def record(self, q):
+        """A frame for each video, rendered off-screen: the window keeps its own camera."""
+        viewer, camera = self.viewer, self.viewer.camera
+        own_view = wp.vec3(*camera.pos), camera.pitch, camera.yaw
+        yaw = Rotation.from_quat(q[BASE_QUAT]).as_euler("zyx")[0]
+        self.heading += HEADING_SMOOTHING * (np.array([math.cos(yaw), math.sin(yaw)]) - self.heading)
+        views = {"follow": self.follow_view(q[BASE_POS], math.atan2(self.heading[1], self.heading[0])),
+                 "birdseye": (wp.vec3(q[0], q[1], BIRDSEYE_HEIGHT), -90.0, 90.0)}  # straight down, map +y up
+        for name, view in views.items():
+            viewer.set_camera(*view)
+            # the viewer's own draw call, without presenting it to the window
+            viewer.renderer.render(camera, viewer.objects, viewer.lines, viewer.wireframe_shapes, viewer.arrows)
+            frame = cv2.resize(viewer.get_frame().numpy(), VIDEO_SIZE)  # the window may have been resized
+            self.videos[name].write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+        viewer.set_camera(*own_view)
+
+    def close(self):
+        for video in self.videos.values():
+            video.release()  # finishes the files
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -258,12 +300,17 @@ def main():
     parser.add_argument("--y", type=float, required=True)
     parser.add_argument("--yaw", type=float, default=0.0)
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--video-dir", help="record follow.mp4 and birdseye.mp4 here")
     args = parser.parse_args()
     rclpy.init()
+    sim = Tron1Sim(args.world, args.x, args.y, args.yaw, args.headless, args.video_dir)
+    # Ctrl-C arrives twice (from the terminal or test, then from ros2 launch): end the loop rather
+    # than die, so close() can finish the mp4s. After Tron1Sim: limxsdk's init installs a handler that kills us.
+    signal.signal(signal.SIGINT, lambda *_: rclpy.try_shutdown())
     try:
-        Tron1Sim(args.world, args.x, args.y, args.yaw, args.headless).run()
-    except KeyboardInterrupt:
-        pass
+        sim.run()
+    finally:
+        sim.close()
 
 
 if __name__ == "__main__":

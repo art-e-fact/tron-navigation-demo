@@ -5,6 +5,8 @@
 Everything comes from the route (artefacts_toolkit_navigation): the robot spawns
 at its start, the Newton world is extruded from its map, Nav2 localises on that
 map. Run from the repo root (route and map paths are relative to it).
+Records a rosbag into rosbags/, where the Artefacts CLI finds and uploads it,
+and follow/birdseye videos into the Artefacts upload dir.
 """
 
 import math
@@ -19,12 +21,15 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
+from artefacts_toolkit.rosbag import get_bag_recorder
 from artefacts_toolkit_navigation import load_route, map_to_world, route_launch_args
 
 ROOT = Path(__file__).resolve().parents[1]
 ROBOT_IP = "127.0.0.1"  # where the controller finds the robot: our sim
 WALL_HEIGHT_M = 2.0
 CROP_M = 15.0  # only the walls within this distance of the route
+BAG_TOPICS = ["/amcl_pose", "/odom"]  # for the test's charts
+UPLOAD_DIR = os.environ.get("ARTEFACTS_SCENARIO_UPLOAD_DIR", str(ROOT / "results"))
 
 
 def share(package):
@@ -40,7 +45,8 @@ def launch_setup(context):
     sim = ExecuteProcess(
         cmd=["python", str(ROOT / "sim" / "tron1_sim.py"), "--world", world,
              "--x", start["x_pose"], "--y", start["y_pose"], "--yaw", start["yaw"]]
-            + (["--headless"] if arg("headless") == "true" else []),
+            + (["--headless"] if arg("headless") == "true" else [])
+            + ["--video-dir", UPLOAD_DIR],
         output="screen",
     )
 
@@ -89,7 +95,8 @@ def launch_setup(context):
         package="rviz2", executable="rviz2", condition=IfCondition(arg("rviz")),
         arguments=["-d", str(nav2_bringup / "rviz" / "nav2_default_view.rviz")],
     )
-    return [sim, controller, scan, nav2, rviz]
+    bag, _ = get_bag_recorder(BAG_TOPICS)
+    return [sim, controller, scan, nav2, rviz, bag]
 
 
 def generate_launch_description():
