@@ -21,3 +21,4 @@ jobs:
       settings:
         - name: test_route_navigation
           pytest_file: tests/test_route.py
+          metrics: metrics.json

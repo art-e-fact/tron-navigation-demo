@@ -11,7 +11,6 @@ With --video-dir it also records follow.mp4 and birdseye.mp4, headless or not.
 """
 
 import argparse
-import math
 import os
 import signal
 import threading
@@ -19,14 +18,13 @@ import time
 import warnings
 from pathlib import Path
 
-import cv2
 import numpy as np
 import pyglet
 from scipy.spatial.transform import Rotation
 import warp as wp
 import newton
 import newton.viewer
-from newton.sensors import SensorIMU, SensorTiledCamera
+from newton.sensors import SensorIMU
 
 import limxsdk.datatypes as datatypes
 from limxsdk.robot.Robot import Robot
@@ -39,6 +37,9 @@ from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py.point_cloud2 import create_cloud_xyz32
 from std_msgs.msg import Header
 from tf2_ros import StaticTransformBroadcaster, TransformBroadcaster
+
+from utils.camera_utils import VIDEO_SIZE, VideoRecorder, follow_view
+from utils.lidar_utils import LIDAR_MOUNT, Mid360
 
 warnings.filterwarnings("ignore", message=".*margin.*zeroed")  # SolverMuJoCo, about the MJCF's 1 mm margins
 
@@ -58,17 +59,6 @@ BASE_LIN_VEL, BASE_ANG_VEL, BASE_VEL, LEGS_QD = slice(0, 3), slice(3, 6), slice(
 
 ODOM_PERIOD_S, LIDAR_PERIOD_S, RENDER_PERIOD_S, LOG_PERIOD_S = 0.02, 0.1, 0.05, 5.0
 VIDEO_PERIOD_S = 0.1  # a multiple of RENDER_PERIOD_S: frames come from the viewer's latest state
-
-LIDAR_MOUNT = np.array([0.0, 0.0, 0.07])  # on the base_Link top plate (mesh top z=0.0165)
-# Mid-360: 360 deg x -7..52 deg, 10 Hz, 0.1..40 m. A regular grid, with a 0 deg ring for /scan.
-LIDAR_MIN_RANGE, LIDAR_MAX_RANGE = 0.1, 40.0
-AZIMUTHS = np.radians(np.arange(-180.0, 180.0, 0.5))
-ELEVATIONS = np.radians([-7.0] + list(range(-6, 53, 2)))
-
-CAMERA_BEHIND, CAMERA_HEIGHT, CAMERA_PITCH = 1.5, 2.2, -60.0  # viewer start and follow video: behind the robot, above the walls
-BIRDSEYE_HEIGHT = 12.0
-VIDEO_SIZE = (1280, 720)
-HEADING_SMOOTHING = 0.1  # per frame, so the follow video does not wobble with the gait
 
 
 def fill(msg, values, fields="xyz"):  # e.g. fill(pose.position, [1, 2, 3])
@@ -98,18 +88,7 @@ class Tron1Sim:
                 self.simulate()
             self.physics_graph = capture.graph
 
-        # Mid-360: custom rays from the lidar frame, cast against every visible shape
-        self.lidar = SensorTiledCamera(self.model, load_textures=False)
-        elevation, azimuth = np.meshgrid(ELEVATIONS, AZIMUTHS, indexing="ij")
-        self.ray_dirs = np.stack([np.cos(elevation) * np.cos(azimuth),
-                                  np.cos(elevation) * np.sin(azimuth),
-                                  np.sin(elevation)], -1)
-        rays = np.stack([np.zeros_like(self.ray_dirs), self.ray_dirs], -2)[None]  # (1, H, W, origin/dir, xyz)
-        self.rays = wp.array(rays.astype(np.float32), dtype=wp.vec3f)
-        self.depth = self.lidar.utils.create_depth_image_output(len(AZIMUTHS), len(ELEVATIONS))
-        self.hit_shape = self.lidar.utils.create_shape_index_image_output(len(AZIMUTHS), len(ELEVATIONS))
-        # is_robot_shape[shape index]; the extra False at the end catches misses (index clamped to it)
-        self.is_robot_shape = np.append(self.model.shape_body.numpy() >= 0, False)
+        self.lidar = Mid360(self.model)
 
         # The window, or a hidden (EGL) viewer when headless to render the videos with
         self.viewer = None
@@ -117,13 +96,8 @@ class Tron1Sim:
             pyglet.options["headless"] = headless
             self.viewer = newton.viewer.ViewerGL(*VIDEO_SIZE, headless=headless)
             self.viewer.set_model(self.model)
-            self.viewer.set_camera(*self.follow_view(self.spawn[BASE_POS], yaw))
-        self.heading = np.array([math.cos(yaw), math.sin(yaw)])
-        h264 = cv2.VideoWriter_fourcc(*"avc1")  # ~3 ms a 720p frame; VP8 (webm) took ~35 and stalled the sim
-        if video_dir:
-            Path(video_dir).mkdir(parents=True, exist_ok=True)
-        self.videos = {name: cv2.VideoWriter(str(Path(video_dir) / f"{name}.mp4"), h264, 1 / VIDEO_PERIOD_S, VIDEO_SIZE)
-                       for name in ("follow", "birdseye")} if video_dir else {}
+            self.viewer.set_camera(*follow_view(self.spawn[BASE_POS], yaw))
+        self.recorder = VideoRecorder(self.viewer, video_dir, 1 / VIDEO_PERIOD_S, yaw) if video_dir else None
 
         self.robot = Robot(RobotType.PointFoot, True)
         if not self.robot.init(ROBOT_IP):
@@ -198,8 +172,8 @@ class Tron1Sim:
                 self.publish_cloud(q)
             if self.viewer is not None and every(RENDER_PERIOD_S):
                 self.render()
-            if self.videos and every(VIDEO_PERIOD_S):
-                self.record(q)
+            if self.recorder and every(VIDEO_PERIOD_S):
+                self.recorder.record(q[BASE_POS], q[BASE_QUAT])
             if every(LOG_PERIOD_S):
                 now = time.monotonic()
                 print(f"[tron1_sim] t={steps * DT:.0f}s real-time factor {log_steps * DT / (now - log_wall):.2f}"
@@ -252,14 +226,7 @@ class Tron1Sim:
         self.odom_pub.publish(odom)
 
     def publish_cloud(self, q):
-        lidar_pos = q[BASE_POS] + Rotation.from_quat(q[BASE_QUAT]).apply(LIDAR_MOUNT)
-        pose = wp.transformf(wp.vec3f(*lidar_pos), wp.quatf(*q[BASE_QUAT]))
-        self.lidar.update(self.state, wp.array([[pose]], dtype=wp.transformf), self.rays,
-                          depth_image=self.depth, shape_index_image=self.hit_shape)
-        ranges = self.depth.numpy()[0, 0]
-        hit = np.minimum(self.hit_shape.numpy()[0, 0].astype(np.int64), len(self.is_robot_shape) - 1)
-        keep = (ranges >= LIDAR_MIN_RANGE) & (ranges <= LIDAR_MAX_RANGE) & ~self.is_robot_shape[hit]
-        points = (self.ray_dirs[keep] * ranges[keep, None]).astype(np.float32)
+        points = self.lidar.scan(self.state, q[BASE_POS], q[BASE_QUAT])
         self.cloud_pub.publish(create_cloud_xyz32(self.header("livox_frame"), points))
 
     def render(self):
@@ -267,30 +234,9 @@ class Tron1Sim:
         self.viewer.log_state(self.state)
         self.viewer.end_frame()
 
-    @staticmethod
-    def follow_view(position, yaw):  # viewer.set_camera args: behind and above, looking along yaw
-        eye = position + [-CAMERA_BEHIND * math.cos(yaw), -CAMERA_BEHIND * math.sin(yaw), CAMERA_HEIGHT]
-        return wp.vec3(*eye), CAMERA_PITCH, math.degrees(yaw)
-
-    def record(self, q):
-        """A frame for each video, rendered off-screen: the window keeps its own camera."""
-        viewer, camera = self.viewer, self.viewer.camera
-        own_view = wp.vec3(*camera.pos), camera.pitch, camera.yaw
-        yaw = Rotation.from_quat(q[BASE_QUAT]).as_euler("zyx")[0]
-        self.heading += HEADING_SMOOTHING * (np.array([math.cos(yaw), math.sin(yaw)]) - self.heading)
-        views = {"follow": self.follow_view(q[BASE_POS], math.atan2(self.heading[1], self.heading[0])),
-                 "birdseye": (wp.vec3(q[0], q[1], BIRDSEYE_HEIGHT), -90.0, 90.0)}  # straight down, map +y up
-        for name, view in views.items():
-            viewer.set_camera(*view)
-            # the viewer's own draw call, without presenting it to the window
-            viewer.renderer.render(camera, viewer.objects, viewer.lines, viewer.wireframe_shapes, viewer.arrows)
-            frame = cv2.resize(viewer.get_frame().numpy(), VIDEO_SIZE)  # the window may have been resized
-            self.videos[name].write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-        viewer.set_camera(*own_view)
-
     def close(self):
-        for video in self.videos.values():
-            video.release()  # finishes the files
+        if self.recorder:
+            self.recorder.close()
 
 
 def main():
