@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from artefacts_toolkit_navigation import follow_route, load_route
+from artefacts_toolkit.navigation import follow_route, load_route
 from charts import path_chart, route_deviation_chart, speed_chart
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -2,7 +2,7 @@
 
     ros2 launch launch/tron1_nav2.launch.py [route:=routes/x.yaml] [rviz:=true] [headless:=true] [nav2:=false]
 
-Everything comes from the route (artefacts_toolkit_navigation): the robot spawns
+Everything comes from the route (artefacts_toolkit.navigation): the robot spawns
 at its start, the Newton world is extruded from its map, Nav2 localises on that
 map. Run from the repo root (route and map paths are relative to it).
 Records a rosbag into rosbags/, where the Artefacts CLI finds and uploads it,
@@ -22,7 +22,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 from artefacts_toolkit.rosbag import get_bag_recorder
-from artefacts_toolkit_navigation import load_route, map_to_world, route_launch_args
+from artefacts_toolkit.navigation import load_route, map_to_world, route_launch_args
 
 ROOT = Path(__file__).resolve().parents[1]
 ROBOT_IP = "127.0.0.1"  # where the controller finds the robot: our sim
