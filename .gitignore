@@ -5,6 +5,8 @@ routes/*
 
 worlds/
 results/
+rosbags/
+metrics.json
 limx_ws/
 rosbuild/
 third_party/

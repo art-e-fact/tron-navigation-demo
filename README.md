@@ -16,19 +16,21 @@ pixi run build
 2. Record a route with
 
 ```bash
-pixi run artefacts-route record --name my_route --map maps/my_map.yaml
+pixi run artefacts-route record routes/my_route.yaml --map maps/my_map.yaml  # path optional
 ```
 
 * Set the start with **2D Pose Estimate**
 * Add waypoints with **Publish Point**,
-* press Enter in the terminal to save `routes/my_route.yaml`
+* press Enter in the terminal to save `routes/my_route.yaml` (or `routes/<date>_<time>.yaml` if no path given)
 
 3. Run Test with:
 
 ```bash
 pixi run pytest -s                                  # Uses the last recorded route
-HEADLESS=false RVIZ=true pixi run pytest -s         # watch it
+pixi run artefacts run basic_test                   # with artefacts
 ```
+
+Each run records a rosbag into `rosbags/`, and leaves in the Artefacts upload dir (`results/` if not using Artefacts) `follow.mp4`, `birdseye.mp4` and `path.csv`, `speed.csv`, `route_deviation.csv`, which the artefacts dashboard shows as charts.
 
 ## Install without pixi
 
@@ -39,6 +41,7 @@ ros-humble-desktop
 ros-humble-navigation2
 ros-humble-nav2-bringup
 ros-humble-pointcloud-to-laserscan
+ros-humble-rosbag2-storage-mcap
 ros-humble-controller-manager
 ros-humble-controller-interface
 ros-humble-hardware-interface

@@ -1,0 +1,118 @@
+# Nav2 (Humble) params for Tron1: only what differs from Nav2's own defaults.
+# The launch sets use_sim_time and the map.
+
+amcl:
+  ros__parameters:
+    base_frame_id: "base_link"  # default: "base_footprint"
+    alpha1: 0.05  # default: 0.2
+    alpha2: 0.05  # default: 0.2
+    alpha3: 0.05  # default: 0.2
+    alpha4: 0.05  # default: 0.2
+    alpha5: 0.05  # default: 0.2
+    laser_max_range: 20.0  # default: 100.0
+    max_beams: 120  # default: 60
+    max_particles: 5000  # default: 2000
+    min_particles: 1000  # default: 500
+    sigma_hit: 0.1  # default: 0.2
+    update_min_a: 0.1  # default: 0.2
+    update_min_d: 0.1  # default: 0.25
+    z_hit: 0.9  # default: 0.5
+    z_max: 0.0  # default: 0.05
+    z_rand: 0.1  # default: 0.5
+    z_short: 0.0  # default: 0.05
+
+map_server:
+  ros__parameters:
+    yaml_filename: ""  # set by the launch
+
+controller_server:
+  ros__parameters:
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
+    min_theta_velocity_threshold: 0.001
+    failure_tolerance: 0.3
+    progress_checker:
+      required_movement_radius: 0.3  # default: 0.5
+      movement_time_allowance: 20.0  # default: 10.0
+    goal_checker:
+      xy_goal_tolerance: 0.3  # default: 0.25
+      yaw_goal_tolerance: 0.5  # default: 0.25
+    FollowPath:
+      plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"  # default: "dwb_core::DWBLocalPlanner"
+      desired_linear_vel: 0.4
+      min_lookahead_dist: 0.4
+      rotate_to_heading_angular_vel: 0.6
+      rotate_to_heading_min_angle: 0.6
+      transform_tolerance: 0.2
+      min_approach_linear_velocity: 0.1
+      regulated_linear_scaling_min_speed: 0.15
+      use_cost_regulated_linear_velocity_scaling: false
+      curvature_lookahead_dist: 0.25
+      max_angular_accel: 1.5
+      max_robot_pose_search_dist: 10.0
+      cost_scaling_dist: 0.5
+      cost_scaling_gain: 0.8
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      publish_frequency: 2.0
+      global_frame: odom
+      rolling_window: true
+      resolution: 0.05
+      robot_radius: 0.25
+      plugins: ["voxel_layer", "inflation_layer"]
+      always_send_full_costmap: True
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.5
+      voxel_layer:
+        plugin: "nav2_costmap_2d::VoxelLayer"
+        publish_voxel_map: True
+        z_resolution: 0.1
+        z_voxels: 16
+        observation_sources: scan
+        scan:
+          topic: /scan
+          max_obstacle_height: 2.0  # default: 0.0, which would drop every hit
+          clearing: True
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      update_frequency: 1.0
+      robot_radius: 0.25
+      resolution: 0.05
+      track_unknown_space: true
+      always_send_full_costmap: True
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        observation_sources: scan
+        scan:
+          topic: /scan
+          max_obstacle_height: 2.0  # default: 0.0, which would drop every hit
+          clearing: True
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.5
+
+planner_server:
+  ros__parameters:
+    expected_planner_frequency: 20.0
+
+waypoint_follower:
+  ros__parameters:
+    stop_on_failure: false
+    wait_at_waypoint:
+      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
+      waypoint_pause_duration: 200
+
+velocity_smoother:
+  ros__parameters:
+    max_velocity: [0.5, 0.0, 0.8]  # default: [0.26, 0.0, 1.0]
+    min_velocity: [-0.5, 0.0, -0.8]  # default: [-0.26, 0.0, -1.0]
