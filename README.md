@@ -16,7 +16,7 @@ pixi run build
 2. Record a route with
 
 ```bash
-pixi run artefacts-route record routes/my_route.yaml --map maps/my_map.yaml  # path optional
+pixi run artefacts-route record --map maps/my_map.yaml # saves to routes/
 ```
 
 * Set the start with **2D Pose Estimate**
