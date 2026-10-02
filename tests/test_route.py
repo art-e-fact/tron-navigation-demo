@@ -6,7 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from artefacts_toolkit.navigation import follow_route, load_route
+from artefacts_toolkit.navigation import (
+    assert_each_waypoint_reached, assert_final_pose, assert_max_recoveries, assert_min_clearance,
+    assert_route_completed, follow_route, load_route)
 from charts import path_chart, route_deviation_chart, speed_chart
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,9 +18,12 @@ METRICS = ROOT / "metrics.json"  # artefacts.yaml's `metrics:`, read from where 
 ROUTE_TIMEOUT_S = 400
 STARTUP_TIMEOUT_S = 120  # the sim loading its world, then Nav2 coming up
 SHUTDOWN_TIMEOUT_S = 30
-MAX_FINAL_ERROR_M = 0.5
+MAX_WAYPOINT_ERROR_M = 0.5  # how far from a waypoint still counts as reaching it; Nav2's goal tolerance is 0.3
+MIN_CLEARANCE_M = 0.25  # Nav2's robot_radius: a lidar return nearer than this is inside the robot's footprint
+MAX_RECOVERIES = 0  # Nav2 spinning or backing up to get unstuck
 LOG_TAIL_LINES = 20
 WALKING_MPS = 0.05  # slower than this counts as standing
+METRIC_DECIMALS = 3
 
 
 @pytest.fixture
@@ -52,7 +57,7 @@ def save_charts_and_metrics(metrics):
     walked, deviation = route_deviation_chart(path, load_route(ROUTE), RESULTS_DIR)
     metrics.update(distance_walked_m=walked[-1], mean_walking_speed_mps=speed[speed > WALKING_MPS].mean(),
                    max_route_deviation_m=deviation.max(), mean_route_deviation_m=deviation.mean())
-    METRICS.write_text(json.dumps({k: None if v is None else round(float(v), 3) for k, v in metrics.items()},
+    METRICS.write_text(json.dumps({name: round(value, METRIC_DECIMALS) for name, value in metrics.items()},
                                   indent=2))
 
 
@@ -60,10 +65,12 @@ def test_route_is_completed(robot):
     proc, log, metrics = robot
     result = follow_route(ROUTE, timeout_s=ROUTE_TIMEOUT_S, startup_timeout_s=STARTUP_TIMEOUT_S,
                           results_dir=RESULTS_DIR)
-    metrics.update(route_duration_s=result.duration_s, final_pos_error_m=result.final_pos_error_m,
-                   final_yaw_error_rad=result.final_yaw_error_rad)
+    metrics.update(result.metrics())
     tail = "\n".join(log.read_text(errors="replace").splitlines()[-LOG_TAIL_LINES:])
 
     assert proc.poll() is None, "the launch died:\n" + tail
-    assert result.succeeded, f"{result.summary()}, missed {result.missed_waypoints}\n{tail}"
-    assert result.final_pos_error_m is not None and result.final_pos_error_m < MAX_FINAL_ERROR_M
+    assert_route_completed(result)
+    assert_each_waypoint_reached(result, MAX_WAYPOINT_ERROR_M)
+    assert_final_pose(result, MAX_WAYPOINT_ERROR_M)
+    assert_min_clearance(result, MIN_CLEARANCE_M)
+    assert_max_recoveries(result, MAX_RECOVERIES)
