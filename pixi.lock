@@ -730,7 +730,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/11/6d/921d7e0d4a3d7a122def1b2cd5a908b59fab7faf76f7862a98495faf301b/artefacts_toolkit_gazebo-0.2.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/12/b8/4bd346e22b28902df4d651910f5242c28d84e4a5c2435ca5c3f797ed7e2e/anyio-4.15.1-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/13/40/260446b93b9f5fcb234bb01b16f1d750a64d2b0c9895f72d96f78b1e063a/artefacts_toolkit_navigation-0.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/13/59/caa4d60a58f129659ea5403e6fb52808f87005dfcbaa03e84f0e07f0033e/mcap-1.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1a/69/ee613f74085ca7103f79cd08d579c4f3177d1d26e5d3d9528d2d6536a707/nbformat-5.11.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/1a/8e/b4f03a302c071a9f764cc79e450dbab6a97c0034eb662990836e1e0d16fa/rosbags-0.11.5-py3-none-any.whl
@@ -829,6 +828,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/d1/75/e5d44be90525cd28503e7f836d077ae6663ec0687a13ba7810b4114b3668/rtree-1.4.1-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/d4/2b/04b8a15f3a1c77bc79ddf5c73875327f34b4fa75982df2b76e45e402d364/asttokens-3.0.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d6/0b/29d7965215f8ef830a7ca1f42997fe13e5693d85e9edb18f938d063ef5f2/gitpython-3.1.62-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/d6/24/91f6dead530ec852f7a78828f2034eeea1bc4b0ce91975ace433070a9ba8/artefacts_toolkit_navigation-0.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d9/33/1f075bf72b0b747cb3288d011319aaf64083cf2efef8354174e3ed4540e2/ipython_pygments_lexers-1.1.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/db/5b/b83a9bf1a3b4ec222f9fa083147ff6816245223da0ab92370e7e056f113f/pytest_mock-3.16.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/db/f3/3996583dd2906297a637af12114deddf7658af6e683fedb83be061983fb5/protobuf-7.36.2-cp310-abi3-manylinux2014_x86_64.whl
@@ -841,6 +841,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/e5/7d/905a3a3d51087515719058c94cfbda2ff0fc14417c20d557ae3e82d8b250/plotly-7.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/e7/e7/80988e32bf6f73919a113473a604f5a8f09094de312b9d52b79c2df7612b/jupyter_core-5.9.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/e8/2d/d2a548598be01649e2d46231d151a6c56d10b964d94043a335ae56ea2d92/flatbuffers-25.12.19-py2.py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/e9/9a/f3d3932dca6f8011b55069074054cec518ceddb8295e50b07f2629943790/artefacts_toolkit-1.3.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/eb/47/c95ffc2009878c7aac0c5e08528022dcb885933252a88b5f170058014464/pydantic-2.13.5-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/ed/d4/e6cbc5632347e8326a5ecc49a5a22bc8b195edb885000d67aade392f5f2d/bitmath-1.4.0.1.tar.gz
       - pypi: https://files.pythonhosted.org/packages/ef/b9/f3c8f6284e9e659b808e7194443e2a2e816b9a7b14c432ee443b276915bb/artefacts_toolkit_config-0.2.3-py3-none-any.whl
@@ -848,7 +849,6 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f3/e2/277669d9b3cf79ed8a10289d932263380c8af6cf24ad6b10383dafe21a3f/artefacts_toolkit_utilities-0.3.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f5/c8/5ede3b786ef58e0076e9ca748b2c1787183f85e5ad8133373715c31248f9/trimesh-5.1.0-py3-none-any.whl
-      - pypi: https://files.pythonhosted.org/packages/fb/76/f24a5c0a85bd3e5bab97887bc689b9e53a2b8c5ce600efca4e5f8320d3e3/artefacts_toolkit-1.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/fc/36/dbb6f74621890e5daa831c5f474b81e8b773298adf5ea835c03215a9359c/junitparser-5.0.3-py3-none-any.whl
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -14031,18 +14031,6 @@ packages:
   - typing-extensions>=4.16.0 ; python_full_version < '3.15'
   - trio>=0.32.0 ; extra == 'trio'
   requires_python: '>=3.10'
-- pypi: https://files.pythonhosted.org/packages/13/40/260446b93b9f5fcb234bb01b16f1d750a64d2b0c9895f72d96f78b1e063a/artefacts_toolkit_navigation-0.1.0-py3-none-any.whl
-  name: artefacts-toolkit-navigation
-  version: 0.1.0
-  sha256: 1d6896d42cba1e7ec03cc42462b08408fc0389bcda3ba3e5d4f9f560064dd9ac
-  requires_dist:
-  - artefacts-route-recorder>=0.2.0,<0.3.0
-  - pyyaml>=5.1
-  - build ; extra == 'dev'
-  - pytest ; extra == 'dev'
-  - setuptools-scm ; extra == 'dev'
-  - twine ; extra == 'dev'
-  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/13/59/caa4d60a58f129659ea5403e6fb52808f87005dfcbaa03e84f0e07f0033e/mcap-1.5.0-py3-none-any.whl
   name: mcap
   version: 1.5.0
@@ -15663,6 +15651,18 @@ packages:
   - sphinx-rtd-theme ; extra == 'doc'
   - sphinx-autodoc-typehints ; extra == 'doc'
   requires_python: '>=3.7'
+- pypi: https://files.pythonhosted.org/packages/d6/24/91f6dead530ec852f7a78828f2034eeea1bc4b0ce91975ace433070a9ba8/artefacts_toolkit_navigation-0.2.0-py3-none-any.whl
+  name: artefacts-toolkit-navigation
+  version: 0.2.0
+  sha256: 4e5d40364d77c7157c54f13125397d2ddb8aa92767f01027fa20b03cb9357689
+  requires_dist:
+  - artefacts-route-recorder>=0.2.0,<0.3.0
+  - pyyaml>=5.1
+  - build ; extra == 'dev'
+  - pytest ; extra == 'dev'
+  - setuptools-scm ; extra == 'dev'
+  - twine ; extra == 'dev'
+  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/d9/33/1f075bf72b0b747cb3288d011319aaf64083cf2efef8354174e3ed4540e2/ipython_pygments_lexers-1.1.1-py3-none-any.whl
   name: ipython-pygments-lexers
   version: 1.1.1
@@ -15836,6 +15836,27 @@ packages:
   name: flatbuffers
   version: 25.12.19
   sha256: 7634f50c427838bb021c2d66a3d1168e9d199b0607e6329399f04846d42e20b4
+- pypi: https://files.pythonhosted.org/packages/e9/9a/f3d3932dca6f8011b55069074054cec518ceddb8295e50b07f2629943790/artefacts_toolkit-1.3.0-py3-none-any.whl
+  name: artefacts-toolkit
+  version: 1.3.0
+  sha256: 516825d5584a250c07653f6aafe407e6b14f14572283a549767f03936face402
+  requires_dist:
+  - artefacts-toolkit-rosbag>=0.4.0,<0.5.0
+  - artefacts-toolkit-config>=0.2.3,<0.3.0
+  - artefacts-toolkit-gazebo>=0.2.1,<0.3.0
+  - artefacts-toolkit-chart>=1.0.0,<1.1.0
+  - artefacts-toolkit-rerun>=0.1.0,<0.2.0
+  - artefacts-toolkit-navigation>=0.2.0,<0.3.0
+  - build ; extra == 'dev'
+  - pyre-check ; extra == 'dev'
+  - pytest ; extra == 'dev'
+  - pytest-cov ; extra == 'dev'
+  - pytest-env ; extra == 'dev'
+  - pytest-mock ; extra == 'dev'
+  - ruff ; extra == 'dev'
+  - setuptools-scm ; extra == 'dev'
+  - twine ; extra == 'dev'
+  requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/eb/47/c95ffc2009878c7aac0c5e08528022dcb885933252a88b5f170058014464/pydantic-2.13.5-py3-none-any.whl
   name: pydantic
   version: 2.13.5
@@ -15947,27 +15968,6 @@ packages:
   - aiohttp ; extra == 'test-more'
   - dracopy>=1.7.0 ; extra == 'test-more'
   - trimesh[deprecated,easy,recommend,test,test-more] ; extra == 'all'
-  requires_python: '>=3.10'
-- pypi: https://files.pythonhosted.org/packages/fb/76/f24a5c0a85bd3e5bab97887bc689b9e53a2b8c5ce600efca4e5f8320d3e3/artefacts_toolkit-1.2.0-py3-none-any.whl
-  name: artefacts-toolkit
-  version: 1.2.0
-  sha256: bcbf9cfca1af11ee49991a261d7ca74365e67ff1965b1239f314af4b9561a34e
-  requires_dist:
-  - artefacts-toolkit-rosbag>=0.4.0,<0.5.0
-  - artefacts-toolkit-config>=0.2.3,<0.3.0
-  - artefacts-toolkit-gazebo>=0.2.1,<0.3.0
-  - artefacts-toolkit-chart>=1.0.0,<1.1.0
-  - artefacts-toolkit-rerun>=0.1.0,<0.2.0
-  - artefacts-toolkit-navigation>=0.1.0,<0.2.0
-  - build ; extra == 'dev'
-  - pyre-check ; extra == 'dev'
-  - pytest ; extra == 'dev'
-  - pytest-cov ; extra == 'dev'
-  - pytest-env ; extra == 'dev'
-  - pytest-mock ; extra == 'dev'
-  - ruff ; extra == 'dev'
-  - setuptools-scm ; extra == 'dev'
-  - twine ; extra == 'dev'
   requires_python: '>=3.10'
 - pypi: https://files.pythonhosted.org/packages/fc/36/dbb6f74621890e5daa831c5f474b81e8b773298adf5ea835c03215a9359c/junitparser-5.0.3-py3-none-any.whl
   name: junitparser
